@@ -4,6 +4,8 @@ import NodeCache from "node-cache";
 const port = 3000;
 const app = express();
 const cache = new NodeCache({ stdTTL: 15 }); // This could be a redis cache for a distributed system
+
+// These next two variables could be stored in azure configs and stored in a cache as well
 const bucketSize = 4; // Here we could import some rule through Azure config's
 const bucketRefreshRate = 1000; // milliseconds. This could also be imported through azure configs as a rule
 
