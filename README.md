@@ -1,0 +1,1 @@
+To test it out, clone the repo, install node. Navigate to the folder from terminal and type 'node app.js' Open chrome and go to http://127.0.0.1:3000/, hit refresh quickly and you should get locked out. Try again and you'll be back in. You can see what the cache is storing in the console.log
