@@ -1,0 +1,19 @@
+{
+  "name": "systemdesign",
+  "version": "1.0.0",
+  "description": "A repo to demonstrate system design concepts",
+  "main": "app.js",
+  "scripts": {
+    "test": "test"
+  },
+  "type": "module",
+  "author": "DanielKunkler",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.18.1",
+    "http": "^0.0.1-security"
+  },
+  "devDependencies": {
+    "typescript": "^4.7.4"
+  }
+}
