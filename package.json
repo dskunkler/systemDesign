@@ -1,4 +1,5 @@
 {
+<<<<<<< Updated upstream
   "name": "systemdesign",
   "version": "1.0.0",
   "description": "A repo to demonstrate system design concepts",
@@ -18,4 +19,28 @@
   "devDependencies": {
     "typescript": "^4.7.4"
   }
+=======
+    "name": "systemdesign",
+    "version": "1.0.0",
+    "description": "A repo to demonstrate system design concepts",
+    "main": "app.js",
+    "scripts": {
+        "test": "test",
+        "tokenBucket": "tsc && node ./dist/rateLimiter/tokenBucket/app.js "
+    },
+    "type": "module",
+    "author": "DanielKunkler",
+    "license": "ISC",
+    "dependencies": {
+        "axios": "^0.27.2",
+        "express": "^4.18.1",
+        "http": "^0.0.1-security",
+        "node-cache": "^5.1.2",
+        "yargs": "^17.5.1"
+    },
+    "devDependencies": {
+        "@types/node": "^18.6.4",
+        "typescript": "^4.7.4"
+    }
+>>>>>>> Stashed changes
 }
