@@ -7,22 +7,30 @@ var cache = new NodeCache({ stdTTL: 15 }); // This could be a redis cache for a 
 var bucketSize = 4; // Here we could import some rule through Azure config's
 var bucketRefreshRate = 1000; // milliseconds. This could also be imported through azure configs as a rule
 var refillBucket = function () {
-    setTimeout(function () {
-        refillBucket();
-        // console.log("bucket Refresh called");
-    }, 1000);
-    var keys = cache.keys();
-    for (var i = 0; i < keys.length; i++) {
-        console.log('val: ', cache.get(keys[i]));
-        var currentVal = cache.get(keys[i]);
-        if (currentVal + 1 >= bucketSize) {
-            cache.del(keys[i]);
-            console.log('bucket full, deleting');
+    try {
+        setTimeout(function () {
+            refillBucket();
+            // console.log("bucket Refresh called");
+        }, 1000);
+        var keys = cache.keys();
+        for (var i = 0; i < keys.length; i++) {
+            console.log('val: ', cache.get(keys[i]));
+            var currentVal = cache.get(keys[i]);
+            if (currentVal == null) {
+                continue;
+            }
+            if (currentVal + 1 >= bucketSize) {
+                cache.del(keys[i]);
+                console.log('bucket full, deleting');
+            }
+            else {
+                cache.set(keys[i], currentVal + 1);
+                console.log('incrementing bucket for key');
+            }
         }
-        else {
-            cache.set(keys[i], currentVal + 1);
-            console.log('incrementing bucket for key');
-        }
+    }
+    catch (e) {
+        console.log(e);
     }
 };
 refillBucket();
@@ -31,6 +39,10 @@ var checkIP = function (req, res, next) {
         var ip = req.ip;
         if (cache.has(ip)) {
             var reqsMade = cache.get(ip);
+            if (reqsMade == null) {
+                console.log('Requests for IP is undefined');
+                return;
+            }
             console.log('len: ', cache.keys().length);
             if (reqsMade - 1 >= 0) {
                 res.set({
