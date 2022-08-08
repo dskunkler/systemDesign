@@ -10,7 +10,8 @@
         "moduleResolution": "node",
         "resolveJsonModule": true,
         "rootDir": "src",
-        "allowSyntheticDefaultImports": true
+        "allowSyntheticDefaultImports": true,
+        "typeRoots": ["./global.d.ts", "./node_modules/@types"],
     },
     "include": ["./src/**/*"]
 }
