@@ -2,6 +2,7 @@
 exports.__esModule = true;
 var app_1 = require("./app");
 var http = require("http");
+require("dotenv/config");
 var port = process.env.APP_PORT;
 app_1["default"].set('port', port);
 var server = http.createServer(app_1["default"]);
