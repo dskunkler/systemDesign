@@ -1,15 +1,12 @@
 "use strict";
 exports.__esModule = true;
 var express = require("express");
-var bodyParser = require("body-parser");
 require("dotenv/config");
 var NodeCache = require("node-cache");
 var App = /** @class */ (function () {
     function App() {
         var _this = this;
-        this.getPort = function () {
-            return _this.port;
-        };
+        // This monitors and refills the buckets
         this.refillBucket = function () {
             try {
                 // Bucket will refill based on refresh rate
@@ -39,7 +36,7 @@ var App = /** @class */ (function () {
             }
         };
         // Token Bucket Logic
-        this.checkIP = function () {
+        this.tokenBucketMiddleware = function () {
             return function (req, res, next) {
                 try {
                     var ip = req.ip;
@@ -85,7 +82,6 @@ var App = /** @class */ (function () {
             };
         };
         this.express = express();
-        this.middleware();
         this.routes();
         this.users = [
             { firstName: 'fnam1', lastName: 'lnam1', userName: 'username1' },
@@ -113,37 +109,14 @@ var App = /** @class */ (function () {
         // Start bucket refiller
         this.refillBucket();
     }
-    // Configure Express middleware.
-    App.prototype.middleware = function () {
-        this.express.use(bodyParser.json());
-        this.express.use(bodyParser.urlencoded({ extended: false }));
-    };
     App.prototype.routes = function () {
-        var _this = this;
         this.express.get('/', function (req, res, next) {
             res.send('Typescript App works!!!');
         });
         // request to get all the users
-        this.express.get('/tokenBucket', this.checkIP(), function (req, res, next) {
+        this.express.get('/tokenBucket', this.tokenBucketMiddleware(), function (req, res, next) {
             console.log('url:::::::' + req.url);
             res.send('Success');
-        });
-        // request to get all the users by userName
-        this.express.get('/users/:userName', function (req, res, next) {
-            console.log('url:::::::' + req.url);
-            var user = _this.users.filter(function (user) {
-                if (req.params.userName === user.userName) {
-                    return user;
-                }
-            });
-            res.json(user);
-        });
-        // request to post the user
-        // req.body has object of type {firstName:"fnam1",lastName:"lnam1",userName:"username1"}
-        this.express.post('/user', function (req, res, next) {
-            console.log('url:::::::' + req.url);
-            _this.users.push(req.body);
-            res.json(_this.users);
         });
     };
     return App;
