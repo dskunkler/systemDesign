@@ -1,8 +1,8 @@
 import App from './app'
 import * as http from 'http'
+import 'dotenv/config'
 
 const port = process.env.APP_PORT
-
 
 App.set('port', port)
 const server = http.createServer(App)
