@@ -1,10 +1,15 @@
 import * as express from 'express'
 import * as bodyParser from 'body-parser'
+import * as uuid from 'uuid'
 import 'dotenv/config'
 import * as NodeCache from 'node-cache'
+import { nextTick } from 'process'
 
+interface idReq extends express.Request {
+    id: string
+}
 type Message = {
-    req: express.Request
+    req: idReq
     res: express.Response
     next: express.NextFunction
 }
@@ -61,7 +66,7 @@ class App {
     }
 
     // This monitors and refills the buckets
-    private refillBucket = () => {
+    private refillBucket = async () => {
         try {
             // Bucket will refill based on refresh rate
             setTimeout(() => {
@@ -89,14 +94,14 @@ class App {
         }
     }
 
-    private leakBucket = () => {
+    private leakBucket = async () => {
         try {
             // Bucket will refill based on refresh rate
             setTimeout(() => {
                 this.leakBucket()
                 // console.log("bucket Refresh called");
             }, this.outflowRate)
-
+            console.log('Leaking bucket called')
             // Get all the keys in the cache
             const keys = this.leakingCache.keys()
             // For every key get its queue
@@ -115,7 +120,9 @@ class App {
                 // If there is a queue and the size is greater then 0
                 if (queue.length > 0) {
                     // Grab the first message from the queue
+                    console.log(`queue has length: ${queue.length}`)
                     let message = queue.shift()
+                    console.log(`queue popped, new len: ${queue.length}`)
                     // Validate that the message isn't null
                     if (message == null) {
                         throw new Error('undefined message in queue')
@@ -128,12 +135,15 @@ class App {
                         'x-ratelimit-limit': this.bucketSize,
                     })
                     // Send the response
-                    next()
+                    res.send(req.id)
                 } else {
                     // If the queue length is 0, we don't need to monitor that key anymore
+                    console.log('queue length is 0')
                     this.leakingCache.del(keys[i])
+                    continue
                 }
             }
+            console.log('leaking bucket finishing')
         } catch (e) {
             console.log(e)
         }
@@ -184,46 +194,48 @@ class App {
         }
     }
 
-    private leakingTokenBucketMiddleware = () => {
-        return (req, res, next) => {
-            // console.log('in leaking middleware')
-            try {
-                const { ip } = req
-                // console.log('leaking ip is: ', ip)
-                if (this.leakingCache.has(ip)) {
-                    // console.log('cache has IP')
-                    const queue: unknown[] | undefined =
-                        this.leakingCache.get(ip)
-                    if (queue == null) {
-                        console.log('Requests for IP is undefined')
-                        return
-                    }
-
-                    // console.log('len: ', this.leakingCache.keys().length)
-                    // If we can add the message to our queue, add it. Otherwise drop it and send 429
-                    if (queue.length < this.bucketSize) {
-                        // console.log('room in queue, adding req/res')
-                        queue.push({ req, res, next })
-                    } else {
-                        // console.log('no room in queue')
-                        res.set({
-                            'x-ratelimit-remaining': 0,
-                            'x-ratelimit-limit': this.bucketSize,
-                            'x-ratelimit-retry-after': this.outflowRate,
-                        })
-                        res.sendStatus(429)
-                    }
-                } else {
-                    // console.log(`We don't have the IP, Adding`)
-                    let tqueue: unknown[] = []
-                    tqueue.push({ req, res, next })
-                    // console.log('pushed onto temp queue')
-                    this.leakingCache.set(ip, tqueue)
-                    // console.log('set the queue onto the leaking cache')
+    private leakingTokenBucketMiddleware = async (req, res, next) => {
+        console.log('in leaking middleware')
+        try {
+            req.id = uuid.v4()
+            const { ip } = req
+            // console.log('leaking ip is: ', ip)
+            if (this.leakingCache.has(ip)) {
+                console.log('cache has IP')
+                const queue: Message[] | undefined = this.leakingCache.get(ip)
+                if (queue == null) {
+                    console.log('Requests for IP is undefined')
+                    return
                 }
-            } catch (err) {
-                throw new Error(err)
+
+                // If we can add the message to our queue, add it. Otherwise drop it and send 429
+                if (queue.length < this.bucketSize) {
+                    console.log(
+                        `room in queue, adding req/res. len: ${queue.length}`
+                    )
+                    queue.push({ req, res, next })
+                } else {
+                    console.log('no room in queue')
+                    res.set({
+                        'x-ratelimit-remaining': 0,
+                        'x-ratelimit-limit': this.bucketSize,
+                        'x-ratelimit-retry-after': this.outflowRate,
+                    })
+                    res.sendStatus(429)
+                }
+            } else {
+                // console.log(`We don't have the IP, Adding`)
+                let tqueue: Message[] = []
+                tqueue.push({ req, res, next })
+                // console.log('pushed onto temp queue')
+                this.leakingCache.set(ip, tqueue)
+                console.log(
+                    `set the queue onto the leaking cache. len: ${tqueue.length}`
+                )
             }
+            console.log('middleware finished')
+        } catch (err) {
+            throw new Error(err)
         }
     }
 
@@ -240,13 +252,9 @@ class App {
                 res.send('Success')
             }
         )
-        this.express.get(
-            '/leakingTokenBucket',
-            this.leakingTokenBucketMiddleware(),
-            (req, res, next) => {
-                res.send('Success')
-            }
-        )
+        this.express.get('/leakingTokenBucket', (req, res, next) => {
+            this.leakingTokenBucketMiddleware(req, res, next)
+        })
     }
 }
 

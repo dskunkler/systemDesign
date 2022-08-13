@@ -19,6 +19,7 @@
         "node-cache": "^5.1.2",
         "nodemon": "^2.0.19",
         "ts-node": "^10.9.1",
+        "uuid": "^8.3.2",
         "yargs": "^17.5.1"
     },
     "devDependencies": {
