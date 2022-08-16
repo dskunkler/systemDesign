@@ -3,7 +3,6 @@ import * as bodyParser from 'body-parser'
 import * as uuid from 'uuid'
 import 'dotenv/config'
 import * as NodeCache from 'node-cache'
-import { nextTick } from 'process'
 
 interface idReq extends express.Request {
     id: string
@@ -97,14 +96,20 @@ class App {
     private leakBucket = async () => {
         try {
             // Bucket will refill based on refresh rate
-            setTimeout(() => {
-                this.leakBucket()
+            console.log('timeout set')
+            await setTimeout(async () => {
+                console.log('timeout executed')
+                await this.leakBucket()
                 // console.log("bucket Refresh called");
             }, this.outflowRate)
+
             console.log('Leaking bucket called')
             // Get all the keys in the cache
             const keys = this.leakingCache.keys()
             // For every key get its queue
+            if (keys.length == 0) {
+                return
+            }
             for (let i = 0; i < keys.length; i++) {
                 // console.log('val: ', this.leakingCache.get(keys[i]))
                 const queue: Message[] | undefined = this.leakingCache.get(
@@ -123,6 +128,7 @@ class App {
                     console.log(`queue has length: ${queue.length}`)
                     let message = queue.shift()
                     console.log(`queue popped, new len: ${queue.length}`)
+
                     // Validate that the message isn't null
                     if (message == null) {
                         throw new Error('undefined message in queue')
@@ -136,6 +142,9 @@ class App {
                     })
                     // Send the response
                     res.send(req.id)
+                    // Save the shifted queue
+                    this.leakingCache.set(keys[i], queue)
+                    console.log('saved the shifted queue')
                 } else {
                     // If the queue length is 0, we don't need to monitor that key anymore
                     console.log('queue length is 0')
@@ -205,15 +214,19 @@ class App {
                 const queue: Message[] | undefined = this.leakingCache.get(ip)
                 if (queue == null) {
                     console.log('Requests for IP is undefined')
+                    console.log('leaving leaking middleware')
                     return
                 }
 
                 // If we can add the message to our queue, add it. Otherwise drop it and send 429
                 if (queue.length < this.bucketSize) {
-                    console.log(
-                        `room in queue, adding req/res. len: ${queue.length}`
-                    )
                     queue.push({ req, res, next })
+                    this.leakingCache.set(ip, queue)
+                    console.log(
+                        `room in queue, adding req/res. New len: ${queue.length}`
+                    )
+                    console.log('leaving leaking middleware')
+                    return
                 } else {
                     console.log('no room in queue')
                     res.set({
@@ -252,8 +265,8 @@ class App {
                 res.send('Success')
             }
         )
-        this.express.get('/leakingTokenBucket', (req, res, next) => {
-            this.leakingTokenBucketMiddleware(req, res, next)
+        this.express.get('/leakingTokenBucket', async (req, res, next) => {
+            await this.leakingTokenBucketMiddleware(req, res, next)
         })
     }
 }

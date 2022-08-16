@@ -77,57 +77,80 @@ var App = /** @class */ (function () {
             });
         }); };
         this.leakBucket = function () { return __awaiter(_this, void 0, void 0, function () {
-            var keys, i, queue, message, req, res, next;
+            var keys, i, queue, message, req, res, next, e_1;
             var _this = this;
             return __generator(this, function (_a) {
-                try {
-                    // Bucket will refill based on refresh rate
-                    setTimeout(function () {
-                        _this.leakBucket();
-                        // console.log("bucket Refresh called");
-                    }, this.outflowRate);
-                    console.log('Leaking bucket called');
-                    keys = this.leakingCache.keys();
-                    // For every key get its queue
-                    for (i = 0; i < keys.length; i++) {
-                        queue = this.leakingCache.get(keys[i]);
-                        // If queue is null try the next key
-                        if (queue == null) {
-                            console.log('Queue is null');
-                            continue;
+                switch (_a.label) {
+                    case 0:
+                        _a.trys.push([0, 2, , 3]);
+                        // Bucket will refill based on refresh rate
+                        console.log('timeout set');
+                        return [4 /*yield*/, setTimeout(function () { return __awaiter(_this, void 0, void 0, function () {
+                                return __generator(this, function (_a) {
+                                    switch (_a.label) {
+                                        case 0:
+                                            console.log('timeout executed');
+                                            return [4 /*yield*/, this.leakBucket()
+                                                // console.log("bucket Refresh called");
+                                            ];
+                                        case 1:
+                                            _a.sent();
+                                            return [2 /*return*/];
+                                    }
+                                });
+                            }); }, this.outflowRate)];
+                    case 1:
+                        _a.sent();
+                        console.log('Leaking bucket called');
+                        keys = this.leakingCache.keys();
+                        // For every key get its queue
+                        if (keys.length == 0) {
+                            return [2 /*return*/];
                         }
-                        // If there is a queue and the size is greater then 0
-                        if (queue.length > 0) {
-                            // Grab the first message from the queue
-                            console.log("queue has length: ".concat(queue.length));
-                            message = queue.shift();
-                            console.log("queue popped, new len: ".concat(queue.length));
-                            // Validate that the message isn't null
-                            if (message == null) {
-                                throw new Error('undefined message in queue');
+                        for (i = 0; i < keys.length; i++) {
+                            queue = this.leakingCache.get(keys[i]);
+                            // If queue is null try the next key
+                            if (queue == null) {
+                                console.log('Queue is null');
+                                continue;
                             }
-                            req = message.req, res = message.res, next = message.next;
-                            // Set the response
-                            res.set({
-                                'x-ratelimit-remaining': this.bucketSize - queue.length,
-                                'x-ratelimit-limit': this.bucketSize
-                            });
-                            // Send the response
-                            res.send(req.id);
+                            // If there is a queue and the size is greater then 0
+                            if (queue.length > 0) {
+                                // Grab the first message from the queue
+                                console.log("queue has length: ".concat(queue.length));
+                                message = queue.shift();
+                                console.log("queue popped, new len: ".concat(queue.length));
+                                // Validate that the message isn't null
+                                if (message == null) {
+                                    throw new Error('undefined message in queue');
+                                }
+                                req = message.req, res = message.res, next = message.next;
+                                // Set the response
+                                res.set({
+                                    'x-ratelimit-remaining': this.bucketSize - queue.length,
+                                    'x-ratelimit-limit': this.bucketSize
+                                });
+                                // Send the response
+                                res.send(req.id);
+                                // Save the shifted queue
+                                this.leakingCache.set(keys[i], queue);
+                                console.log('saved the shifted queue');
+                            }
+                            else {
+                                // If the queue length is 0, we don't need to monitor that key anymore
+                                console.log('queue length is 0');
+                                this.leakingCache.del(keys[i]);
+                                continue;
+                            }
                         }
-                        else {
-                            // If the queue length is 0, we don't need to monitor that key anymore
-                            console.log('queue length is 0');
-                            this.leakingCache.del(keys[i]);
-                            continue;
-                        }
-                    }
-                    console.log('leaking bucket finishing');
+                        console.log('leaking bucket finishing');
+                        return [3 /*break*/, 3];
+                    case 2:
+                        e_1 = _a.sent();
+                        console.log(e_1);
+                        return [3 /*break*/, 3];
+                    case 3: return [2 /*return*/];
                 }
-                catch (e) {
-                    console.log(e);
-                }
-                return [2 /*return*/];
             });
         }); };
         // Token Bucket Logic
@@ -189,12 +212,16 @@ var App = /** @class */ (function () {
                         queue = this.leakingCache.get(ip);
                         if (queue == null) {
                             console.log('Requests for IP is undefined');
+                            console.log('leaving leaking middleware');
                             return [2 /*return*/];
                         }
                         // If we can add the message to our queue, add it. Otherwise drop it and send 429
                         if (queue.length < this.bucketSize) {
-                            console.log("room in queue, adding req/res. len: ".concat(queue.length));
                             queue.push({ req: req, res: res, next: next });
+                            this.leakingCache.set(ip, queue);
+                            console.log("room in queue, adding req/res. New len: ".concat(queue.length));
+                            console.log('leaving leaking middleware');
+                            return [2 /*return*/];
                         }
                         else {
                             console.log('no room in queue');
@@ -265,9 +292,16 @@ var App = /** @class */ (function () {
         this.express.get('/tokenBucket', this.tokenBucketMiddleware(), function (req, res, next) {
             res.send('Success');
         });
-        this.express.get('/leakingTokenBucket', function (req, res, next) {
-            _this.leakingTokenBucketMiddleware(req, res, next);
-        });
+        this.express.get('/leakingTokenBucket', function (req, res, next) { return __awaiter(_this, void 0, void 0, function () {
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0: return [4 /*yield*/, this.leakingTokenBucketMiddleware(req, res, next)];
+                    case 1:
+                        _a.sent();
+                        return [2 /*return*/];
+                }
+            });
+        }); });
     };
     return App;
 }());
