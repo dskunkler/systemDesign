@@ -84,15 +84,13 @@ var App = /** @class */ (function () {
                     case 0:
                         _a.trys.push([0, 2, , 3]);
                         // Bucket will refill based on refresh rate
-                        console.log('timeout set');
+                        console.log("timeout set");
                         return [4 /*yield*/, setTimeout(function () { return __awaiter(_this, void 0, void 0, function () {
                                 return __generator(this, function (_a) {
                                     switch (_a.label) {
                                         case 0:
-                                            console.log('timeout executed');
-                                            return [4 /*yield*/, this.leakBucket()
-                                                // console.log("bucket Refresh called");
-                                            ];
+                                            console.log("timeout executed");
+                                            return [4 /*yield*/, this.leakBucket()];
                                         case 1:
                                             _a.sent();
                                             return [2 /*return*/];
@@ -101,7 +99,7 @@ var App = /** @class */ (function () {
                             }); }, this.outflowRate)];
                     case 1:
                         _a.sent();
-                        console.log('Leaking bucket called');
+                        console.log("Leaking bucket called");
                         keys = this.leakingCache.keys();
                         // For every key get its queue
                         if (keys.length == 0) {
@@ -111,7 +109,7 @@ var App = /** @class */ (function () {
                             queue = this.leakingCache.get(keys[i]);
                             // If queue is null try the next key
                             if (queue == null) {
-                                console.log('Queue is null');
+                                console.log("Queue is null");
                                 continue;
                             }
                             // If there is a queue and the size is greater then 0
@@ -122,28 +120,28 @@ var App = /** @class */ (function () {
                                 console.log("queue popped, new len: ".concat(queue.length));
                                 // Validate that the message isn't null
                                 if (message == null) {
-                                    throw new Error('undefined message in queue');
+                                    throw new Error("undefined message in queue");
                                 }
                                 req = message.req, res = message.res, next = message.next;
                                 // Set the response
                                 res.set({
-                                    'x-ratelimit-remaining': this.bucketSize - queue.length,
-                                    'x-ratelimit-limit': this.bucketSize
+                                    "x-ratelimit-remaining": this.bucketSize - queue.length,
+                                    "x-ratelimit-limit": this.bucketSize
                                 });
                                 // Send the response
                                 res.send(req.id);
                                 // Save the shifted queue
                                 this.leakingCache.set(keys[i], queue);
-                                console.log('saved the shifted queue');
+                                console.log("saved the shifted queue");
                             }
                             else {
                                 // If the queue length is 0, we don't need to monitor that key anymore
-                                console.log('queue length is 0');
+                                console.log("queue length is 0");
                                 this.leakingCache.del(keys[i]);
                                 continue;
                             }
                         }
-                        console.log('leaking bucket finishing');
+                        console.log("leaking bucket finishing");
                         return [3 /*break*/, 3];
                     case 2:
                         e_1 = _a.sent();
@@ -162,23 +160,23 @@ var App = /** @class */ (function () {
                     if (_this.cache.has(ip)) {
                         var reqsMade = _this.cache.get(ip);
                         if (reqsMade == null) {
-                            console.log('Requests for IP is undefined');
+                            console.log("Requests for IP is undefined");
                             return;
                         }
                         // console.log('len: ', this.cache.keys().length)
                         if (reqsMade - 1 >= 0) {
                             res.set({
-                                'x-ratelimit-remaining': reqsMade - 1,
-                                'x-ratelimit-limit': _this.bucketSize
+                                "x-ratelimit-remaining": reqsMade - 1,
+                                "x-ratelimit-limit": _this.bucketSize
                             });
                             _this.cache.set(ip, reqsMade - 1);
                             next();
                         }
                         else {
                             res.set({
-                                'x-ratelimit-remaining': 0,
-                                'x-ratelimit-limit': _this.bucketSize,
-                                'x-ratelimit-retry-after': _this.bucketRefreshRate
+                                "x-ratelimit-remaining": 0,
+                                "x-ratelimit-limit": _this.bucketSize,
+                                "x-ratelimit-retry-after": _this.bucketRefreshRate
                             });
                             res.sendStatus(429);
                         }
@@ -188,8 +186,8 @@ var App = /** @class */ (function () {
                         // console.log(`We don't have the IP, Adding`)
                         _this.cache.set(ip, _this.bucketSize - 1);
                         res.set({
-                            'x-ratelimit-remaining': _this.bucketSize - 1,
-                            'x-ratelimit-limit': _this.bucketSize
+                            "x-ratelimit-remaining": _this.bucketSize - 1,
+                            "x-ratelimit-limit": _this.bucketSize
                         });
                         next();
                     }
@@ -202,17 +200,17 @@ var App = /** @class */ (function () {
         this.leakingTokenBucketMiddleware = function (req, res, next) { return __awaiter(_this, void 0, void 0, function () {
             var ip, queue, tqueue;
             return __generator(this, function (_a) {
-                console.log('in leaking middleware');
+                console.log("in leaking middleware");
                 try {
                     req.id = uuid.v4();
                     ip = req.ip;
                     // console.log('leaking ip is: ', ip)
                     if (this.leakingCache.has(ip)) {
-                        console.log('cache has IP');
+                        console.log("cache has IP");
                         queue = this.leakingCache.get(ip);
                         if (queue == null) {
-                            console.log('Requests for IP is undefined');
-                            console.log('leaving leaking middleware');
+                            console.log("Requests for IP is undefined");
+                            console.log("leaving leaking middleware");
                             return [2 /*return*/];
                         }
                         // If we can add the message to our queue, add it. Otherwise drop it and send 429
@@ -220,15 +218,15 @@ var App = /** @class */ (function () {
                             queue.push({ req: req, res: res, next: next });
                             this.leakingCache.set(ip, queue);
                             console.log("room in queue, adding req/res. New len: ".concat(queue.length));
-                            console.log('leaving leaking middleware');
+                            console.log("leaving leaking middleware");
                             return [2 /*return*/];
                         }
                         else {
-                            console.log('no room in queue');
+                            console.log("no room in queue");
                             res.set({
-                                'x-ratelimit-remaining': 0,
-                                'x-ratelimit-limit': this.bucketSize,
-                                'x-ratelimit-retry-after': this.outflowRate
+                                "x-ratelimit-remaining": 0,
+                                "x-ratelimit-limit": this.bucketSize,
+                                "x-ratelimit-retry-after": this.outflowRate
                             });
                             res.sendStatus(429);
                         }
@@ -240,7 +238,7 @@ var App = /** @class */ (function () {
                         this.leakingCache.set(ip, tqueue);
                         console.log("set the queue onto the leaking cache. len: ".concat(tqueue.length));
                     }
-                    console.log('middleware finished');
+                    console.log("middleware finished");
                 }
                 catch (err) {
                     throw new Error(err);
@@ -253,9 +251,7 @@ var App = /** @class */ (function () {
         // Load environments and validate
         // All of these could be retrieved from a cache
         this.ttl = process.env.TTL ? +process.env.TTL : -1;
-        this.bucketSize = process.env.BUCKET_SIZE
-            ? +process.env.BUCKET_SIZE
-            : -1;
+        this.bucketSize = process.env.BUCKET_SIZE ? +process.env.BUCKET_SIZE : -1;
         this.bucketRefreshRate = process.env.BUCKET_REFRESH_RATE
             ? +process.env.BUCKET_REFRESH_RATE
             : -1;
@@ -267,7 +263,7 @@ var App = /** @class */ (function () {
             this.bucketSize == -1 ||
             this.bucketRefreshRate == -1 ||
             this.outflowRate == -1) {
-            throw new Error('env not loading properly');
+            throw new Error("env not loading properly");
         }
         // Instantiate cache
         this.cache = new NodeCache({ stdTTL: this.ttl });
@@ -276,7 +272,7 @@ var App = /** @class */ (function () {
             useClones: false
         });
         if (this.cache == null || this.leakingCache == null) {
-            throw new Error('Cache is null!');
+            throw new Error("Cache is null!");
         }
         // Start bucket refiller
         this.refillBucket();
@@ -285,14 +281,14 @@ var App = /** @class */ (function () {
     }
     App.prototype.routes = function () {
         var _this = this;
-        this.express.get('/', function (req, res, next) {
-            res.send('Typescript App works!!!');
+        this.express.get("/", function (req, res, next) {
+            res.send("Typescript App works!!!");
         });
         // request to get all the users
-        this.express.get('/tokenBucket', this.tokenBucketMiddleware(), function (req, res, next) {
-            res.send('Success');
+        this.express.get("/tokenBucket", this.tokenBucketMiddleware(), function (req, res, next) {
+            res.send("Success");
         });
-        this.express.get('/leakingTokenBucket', function (req, res, next) { return __awaiter(_this, void 0, void 0, function () {
+        this.express.get("/leakingTokenBucket", function (req, res, next) { return __awaiter(_this, void 0, void 0, function () {
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0: return [4 /*yield*/, this.leakingTokenBucketMiddleware(req, res, next)];
