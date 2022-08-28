@@ -1,149 +1,201 @@
-import TreeNode from "./treeNode.js";
-class BinarySearchTree {
-  constructor() {
-    this.root = null;
-    this.size = 0;
-  }
-  add(key, value) {
-    const newNode = new TreeNode(key, value);
-    if (this.root) {
-      const { found, parent } = this.findNodeAndParent(key);
-      console.log("~~parent: ", parent);
-      if (found) {
-        // duplicated: value already exist on the tree
-        found.meta.multiplicity =
-          (found.meta && found.meta.multiplicity
-            ? found.meta.multiplicity
-            : 1) + 1;
-      } else if (key < parent.key) {
-        parent.left = newNode;
-      } else {
-        parent.right = newNode;
-      }
-    } else {
-      this.root = newNode;
-    }
-
-    this.size += 1;
-    return newNode;
-  }
-  findNodeAndParent(key) {
-    let node = this.root;
-    let parent;
-
-    while (node) {
-      if (node.key === key) {
-        break;
-      }
-      parent = node;
-      node = key >= node.key ? node.right : node.left;
-    }
-
-    return { found: node, parent };
-  }
-  leftRotation(node) {
-    const newParent = node.right; // e.g. 3
-    const grandparent = node.parent; // e.g. 1
-
-    // make 1 the parent of 3 (previously was the parent of 2)
-    this.swapParentChild(node, newParent, grandparent);
-
-    // do LL rotation
-    newParent.left = node; // makes 2 the left child of 3
-    node.right = undefined; // clean 2's right child
-
-    return newParent; // 3 is the new parent (previously was 2)
-  }
-  swapParentChild(oldChild, newChild, parent) {
-    if (parent) {
-      const side = oldChild.isParentRightChild ? "right" : "left";
-      // this set parent child AND also
-      parent[side] = newChild;
-    } else {
-      // no parent? so set it to null
-      newChild.parent = null;
-    }
-  }
-  rightRotation(node) {
-    const newParent = node.left;
-    const grandparent = node.parent;
-
-    this.swapParentChild(node, newParent, grandparent);
-
-    // do RR rotation
-    newParent.right = node;
-    node.left = undefined;
-
-    return newParent;
-  }
-  leftRightRotation(node) {
-    this.leftRotation(node.left);
-    return this.rightRotation(node);
-  }
-  rightLeftRotation(node) {
-    this.rightRotation(node.right);
-    return this.leftRotation(node);
-  }
-  balance(node) {
-    console.log("bal");
-    if (node.balanceFactor > 1) {
-      console.log("balancing right side");
-      // left subtree is higher than right subtree
-      if (node.left.balanceFactor > 0) {
-        this.rightRotation(node);
-      } else if (node.left.balanceFactor < 0) {
-        this.leftRightRotation(node);
-      }
-    } else if (node.balanceFactor < -1) {
-      console.log("balancing left");
-      // right subtree is higher than left subtree
-      if (node.right.balanceFactor < 0) {
-        this.leftRotation(node);
-      } else if (node.right.balanceFactor > 0) {
-        this.rightLeftRotation(node);
-      }
-    }
-  }
+// Create node
+const Node = function (item, value) {
+    this.value = value // This will be the cache itself
+    this.item = item
+    this.height = 1
+    this.left = null
+    this.right = null
 }
 
-class AvlTree extends BinarySearchTree {
-  balanceUpstream(node) {
-    let current = node;
-    let newParent;
-    while (current) {
-      newParent = super.balance(current);
-      current = current.parent;
+//AVL Tree
+const AVLTree = function () {
+    let root = null
+
+    //return height of the node
+    this.height = (N) => {
+        if (N === null) {
+            return 0
+        }
+
+        return N.height
     }
-    return newParent;
-  }
-  add(key, value) {
-    const node = super.add(key, value);
-    this.balanceUpstream(node);
-    return node;
-  }
-  remove(value) {
-    const node = super.find(value);
-    if (node) {
-      const found = super.remove(value);
-      this.balanceUpstream(node.parent);
-      return found;
+
+    //right rotate
+    this.rightRotate = (y) => {
+        let x = y.left
+        let T2 = x.right
+        x.right = y
+        y.left = T2
+        y.height = Math.max(this.height(y.left), this.height(y.right)) + 1
+        x.height = Math.max(this.height(x.left), this.height(x.right)) + 1
+        return x
     }
-    return false;
-  }
+
+    //left rotate
+    this.leftRotate = (x) => {
+        let y = x.right
+        let T2 = y.left
+        y.left = x
+        x.right = T2
+        x.height = Math.max(this.height(x.left), this.height(x.right)) + 1
+        y.height = Math.max(this.height(y.left), this.height(y.right)) + 1
+        return y
+    }
+
+    // get balance factor of a node
+    this.getBalanceFactor = (N) => {
+        if (N == null) {
+            return 0
+        }
+
+        return this.height(N.left) - this.height(N.right)
+    }
+
+    // helper function to insert a node
+    const insertNodeHelper = (node, item, value) => {
+        // find the position and insert the node
+        if (node === null) {
+            return new Node(item, value)
+        }
+
+        if (item < node.item) {
+            node.left = insertNodeHelper(node.left, item, value)
+        } else if (item > node.item) {
+            node.right = insertNodeHelper(node.right, item, value)
+        } else {
+            return node
+        }
+
+        // update the balance factor of each node
+        // and, balance the tree
+        node.height =
+            1 + Math.max(this.height(node.left), this.height(node.right))
+
+        let balanceFactor = this.getBalanceFactor(node)
+
+        if (balanceFactor > 1) {
+            if (item < node.left.item) {
+                return this.rightRotate(node)
+            } else if (item > node.left.item) {
+                node.left = this.leftRotate(node.left)
+                return this.rightRotate(node)
+            }
+        }
+
+        if (balanceFactor < -1) {
+            if (item > node.right.item) {
+                return this.leftRotate(node)
+            } else if (item < node.right.item) {
+                node.right = this.rightRotate(node.right)
+                return this.leftRotate(node)
+            }
+        }
+
+        return node
+    }
+
+    // insert a node
+    this.insertNode = (item, value) => {
+        // console.log(root);
+        root = insertNodeHelper(root, item, value)
+    }
+
+    //get node with minimum value
+    this.nodeWithMimumValue = (node) => {
+        let current = node
+        while (current.left !== null) {
+            current = current.left
+        }
+        return current
+    }
+
+    // delete helper
+    const deleteNodeHelper = (root, item) => {
+        // find the node to be deleted and remove it
+        if (root == null) {
+            return root
+        }
+        if (item < root.item) {
+            root.left = deleteNodeHelper(root.left, item)
+        } else if (item > root.item) {
+            root.right = deleteNodeHelper(root.right, item)
+        } else {
+            if (root.left === null || root.right === null) {
+                let temp = null
+                if (temp == root.left) {
+                    temp = root.right
+                } else {
+                    temp = root.left
+                }
+
+                if (temp == null) {
+                    temp = root
+                    root = null
+                } else {
+                    root = temp
+                }
+            } else {
+                let temp = this.nodeWithMimumValue(root.right)
+                root.item = temp.item
+                root.right = deleteNodeHelper(root.right, temp.item)
+            }
+        }
+        if (root == null) {
+            return root
+        }
+
+        // Update the balance factor of each node and balance the tree
+        root.height =
+            Math.max(this.height(root.left), this.height(root.right)) + 1
+
+        let balanceFactor = this.getBalanceFactor(root)
+        if (balanceFactor > 1) {
+            if (this.getBalanceFactor(root.left) >= 0) {
+                return this.rightRotate(root)
+            } else {
+                root.left = this.leftRotate(root.left)
+                return this.rightRotate(root)
+            }
+        }
+        if (balanceFactor < -1) {
+            if (this.getBalanceFactor(root.right) <= 0) {
+                return this.leftRotate(root)
+            } else {
+                root.right = this.rightRotate(root.right)
+                return this.leftRotate(root)
+            }
+        }
+        return root
+    }
+
+    //delete a node
+    this.deleteNode = (item) => {
+        root = deleteNodeHelper(root, item)
+    }
+
+    // print the tree in pre - order
+    this.preOrder = () => {
+        preOrderHelper(root)
+    }
+
+    const preOrderHelper = (node) => {
+        if (node) {
+            console.log(node.item)
+            preOrderHelper(node.left)
+            preOrderHelper(node.right)
+        }
+    }
 }
-
-let bst = new AvlTree();
-bst.add(3, "hi");
-bst.add(4, "you");
-bst.add(5, "fuckl");
-// bst.add(2, "f2");
-bst.add(6, "6");
-bst.add(7, "7");
-bst.add(8, "8");
-bst.add(9, "9");
-
-let x = bst.findNodeAndParent(3);
-console.log("found x", x);
-console.log("root: ", bst.root.key);
-// let avl = new AvlTree();
-// avl.add(3, "hi");
+const tree = new AVLTree()
+tree.insertNode(33, 33)
+tree.insertNode(13, 13)
+tree.insertNode(53, 53)
+tree.insertNode(9, 9)
+tree.insertNode(21, 21)
+tree.insertNode(61, 61)
+tree.insertNode(8, 8)
+tree.insertNode(11, 11)
+tree.preOrder()
+tree.deleteNode(13)
+console.log('After Deletion: ')
+tree.preOrder()
