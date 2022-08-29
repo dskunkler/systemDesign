@@ -57,34 +57,34 @@ const ch = new consistentHash(4);
 const node1 = new NodeCache({ stdTTL: 15 });
 const node2 = new NodeCache({ stdTTL: 15 });
 ch.add(node1);
-// console.log("new");
-// ch.add(node2);
+console.log("new");
+ch.add(node2);
 ch.tree.preOrder();
 
 const cacheNode = ch.get("www.amazon.com");
-// if (cacheNode.value == node1) {
-//   console.log("first cache");
-// } else if (cacheNode.value == node2) {
-//   console.log("second cache");
-// } else {
-//   console.log("neither");
-// }
-// console.log("help");
-// const cacheNode1 = ch.get("www.amazon.com/help");
-// if (cacheNode1.value == node1) {
-//   console.log("first cache");
-// } else if (cacheNode1.value == node2) {
-//   console.log("second cache");
-// } else {
-//   console.log("neither");
-// }
-// console.log("banana");
-// const cacheNode2 = ch.get("www.banana.com");
-// if (cacheNode2.value == node1) {
-//   console.log("first cache");
-// } else if (cacheNode2.value == node2) {
-//   console.log("second cache");
-// } else {
-//   console.log("neither");
-// }
-// ch.tree.preOrder();
+if (cacheNode.value == node1) {
+  console.log("first cache");
+} else if (cacheNode.value == node2) {
+  console.log("second cache");
+} else {
+  console.log("neither");
+}
+console.log("help");
+const cacheNode1 = ch.get("www.amazon.com/help");
+if (cacheNode1.value == node1) {
+  console.log("first cache");
+} else if (cacheNode1.value == node2) {
+  console.log("second cache");
+} else {
+  console.log("neither");
+}
+console.log("banana");
+const cacheNode2 = ch.get("www.banana.com");
+if (cacheNode2.value == node1) {
+  console.log("first cache");
+} else if (cacheNode2.value == node2) {
+  console.log("second cache");
+} else {
+  console.log("neither");
+}
+ch.tree.preOrder();
